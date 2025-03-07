@@ -1,0 +1,87 @@
+# -*- coding: utf-8 -*-
+
+# Max-Planck-Gesellschaft zur Förderung der Wissenschaften e.V. (MPG) is
+# holder of all proprietary rights on this computer program.
+# You can only use this computer program if you have closed
+# a license agreement with MPG or you get the right to use the computer
+# program from someone who is authorized to grant you that right.
+# Any use of the computer program without a valid license is prohibited and
+# liable to prosecution.
+#
+# Copyright©2019 Max-Planck-Gesellschaft zur Förderung
+# der Wissenschaften e.V. (MPG). acting on behalf of its Max Planck Institute
+# for Intelligent Systems. All rights reserved.
+#
+# Contact: ps-license@tuebingen.mpg.de
+
+import cv2
+import torch
+import joblib
+import numpy as np
+import os.path as osp
+from torch.utils.data import Dataset
+
+from lib.core.config import VIBE_DB_DIR
+from lib.data_utils.img_utils import split_into_chunks
+
+class CasiaB(Dataset):
+    def __init__(self, seqlen, subset='train'):
+        self.seqlen = seqlen
+        self.subset = subset
+
+        self.stride = seqlen
+
+        self.width = 320
+        self.height = 240
+
+        self.db = self.load_db()
+        self.vid_indices = split_into_chunks(self.db['vid_name'], self.seqlen, self.stride)
+        del self.db['vid_name']
+        print(f'CASIA-B dataset number of videos: {len(self.vid_indices)}')
+
+    def __len__(self):
+        return len(self.vid_indices)
+
+    def __getitem__(self, index):
+        return self.get_single_item(index)
+
+    def load_db(self):
+        db_file = osp.join(VIBE_DB_DIR, 'casiab_'+self.subset+'_db.pt')
+        db = joblib.load(db_file)
+        return db
+
+    def get_single_item(self, index):
+        start_index, end_index = self.vid_indices[index]
+
+        sil = []
+        mask = []
+        for i, sil_name in enumerate(self.db['sil_name'][start_index:end_index+1]):
+            if self.db['valid'][start_index+i]:
+                s = cv2.imread(sil_name, cv2.IMREAD_GRAYSCALE)
+                mask.append(1)
+                if s.shape[1] == 300:
+                    s2 = np.zeros((self.height, self.width), dtype=np.uint8)
+                    if '/000/' in sil_name:
+                        s2[:, :300] = s
+                    elif '/180/' in sil_name:
+                        s2[:, 20:] = s
+                    else:
+                        print('wih?')
+                        mask[-1] = 0
+                    s = s2
+            else:
+                s = np.zeros((self.height, self.width), dtype=np.uint8)
+                mask.append(0)
+            sil.append(s)
+        sil = np.stack(sil, axis=0).astype(np.float32)/255.0
+        mask = np.asarray(mask, dtype=np.float32)
+
+        target = {
+            'features': torch.from_numpy(self.db['features'][start_index:end_index+1]),
+            'id': torch.from_numpy(np.unique(self.db['id'][start_index:end_index+1])),
+            'bbox': torch.from_numpy(self.db['bbox'][start_index:end_index+1]).float(),
+            'silhouettes': torch.from_numpy(sil),
+            'mask': torch.from_numpy(mask)
+        }
+        return target
+

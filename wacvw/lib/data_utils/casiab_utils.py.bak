@@ -1,0 +1,138 @@
+import sys
+sys.path.append('.')
+
+import os
+import cv2
+import torch
+import joblib
+import argparse
+import numpy as np
+import pickle as pkl
+import os.path as osp
+#from tqdm import tqdm
+
+from lib.models import spin
+from lib.core.config import VIBE_DB_DIR, VIBE_DATA_DIR, CASIAB_DIR
+from lib.data_utils.feature_extractor import extract_features
+
+BBOX_SCALE = 1.1
+
+def func(x, a, b, c, d):
+	return np.power(x,3)*a + np.square(x)*b + np.asarray(x)*c + d
+
+def read_data(folder, subset, debug=False):
+	dataset = { 'vid_name': [], 'id': [], 'frame_id': [], 'bbox': [], 'img_name': [], 'sil_name': [], 'features': [], 'valid': [], }
+
+	# get SPIN backbone
+	model = spin.get_pretrained_hmr()
+
+	# get video tracklets
+	with open(osp.join(folder, 'tracker.casia'), 'r') as fp:
+		lines = [l for l in fp.read().splitlines() if 'FAIL' not in l and 'bkgrd' not in l]
+	tracker = {}
+	for line in lines:
+		elems = line.split()
+		filename = elems[0].split('.')[0]
+		start, end = int(elems[2]), int(elems[3])
+		params_x = [float(elems[5]), float(elems[6]), float(elems[7]), float(elems[8])]
+		params_y = [float(elems[9]), float(elems[10]), float(elems[11]), float(elems[12])]
+		params_h = [float(elems[13]), float(elems[14]), float(elems[15]), float(elems[16])]
+
+		tracker[filename] = {}
+		tracker[filename]['start'] = start
+		tracker[filename]['end'] = end
+		tracker[filename]['params_x'] = params_x
+		tracker[filename]['params_y'] = params_y
+		tracker[filename]['params_h'] = params_h
+
+	# get list of training/testing identities
+	identities = sorted([x for x in os.listdir(osp.join(folder, 'frames')) if int(x) <= 74 and subset == 'train' or int(x) > 74 and subset == 'test'])
+
+	print(identities)
+
+	# create CASIA-B dataset
+	for i, identity in enumerate(identities):
+		styles = sorted([x for x in os.listdir(osp.join(folder, 'frames', identity))])
+		for style in styles:
+			viewpoints = sorted([x for x in os.listdir(osp.join(folder, 'frames', identity, style))])
+			for viewpoint in viewpoints:
+				filename = identity+'-'+style+'-'+viewpoint
+				print(filename, end='\r')
+				if filename not in tracker:
+					print('ignore', filename)
+					#quit()
+					continue
+
+				start = tracker[filename]['start']
+				end = tracker[filename]['end']
+				params_x = tracker[filename]['params_x']
+				params_y = tracker[filename]['params_y']
+				params_h = tracker[filename]['params_h']
+
+				img_paths = []
+				sil_paths = []
+				frame_ids = []
+				valid = []
+				bboxes = []
+				for j in range(start+1, end+2):
+					frame_ids.append(j)
+
+					img_path = osp.join(folder, 'frames', identity, style, viewpoint, filename+'-'+str(j).zfill(3)+'.png')
+					img_paths.append(img_path)
+					frame = cv2.imread(img_path, cv2.IMREAD_COLOR)
+					if frame is None:
+						print('error', filename)
+
+					sil_path = osp.join(folder, 'silhouettes', identity, style, viewpoint, filename+'-'+str(j).zfill(3)+'.png')
+					sil_paths.append(sil_path)
+					silhouette = cv2.imread(sil_path, cv2.IMREAD_GRAYSCALE)
+					if silhouette is None:
+						valid.append(0)
+					else:
+						valid.append(1)
+
+					cx = func(j-1, params_x[0], params_x[1], params_x[2], params_x[3])
+					cy = func(j-1, params_y[0], params_y[1], params_y[2], params_y[3])
+					h = func(j-1, params_h[0], params_h[1], params_h[2], params_h[3])
+
+					bboxes.append([cx, cy, h, h])
+				img_paths_array = np.array(img_paths)
+				sil_paths_array = np.array(sil_paths)
+				bboxes = np.array(bboxes)
+				frame_ids = np.array(frame_ids)
+				valid = np.array(valid)
+
+				features = extract_features(model, img_paths_array, bboxes, debug=debug, scale=BBOX_SCALE)
+				#print(filename, start, end, features.shape, features.dtype)
+
+				dataset['vid_name'].append(np.array([filename]*(end-start+1)))
+				dataset['id'].append(np.array([int(identity)]*(end-start+1)))
+				dataset['frame_id'].append(frame_ids)
+				dataset['img_name'].append(img_paths_array)
+				dataset['sil_name'].append(sil_paths_array)
+				dataset['bbox'].append(bboxes)
+				dataset['valid'].append(valid)
+				dataset['features'].append(features)
+			#break
+		#break
+
+	print(subset)
+	for k in dataset.keys():
+		dataset[k] = np.concatenate(dataset[k])
+		print(k, dataset[k].shape, dataset[k].dtype)
+
+	return dataset
+
+
+if __name__ == '__main__':
+	parser = argparse.ArgumentParser()
+	parser.add_argument('--dir', type=str, help='dataset directory', default=CASIAB_DIR)
+	args = parser.parse_args()
+
+	debug = False
+
+	dataset = read_data(args.dir, 'train', debug=debug)
+	joblib.dump(dataset, osp.join(VIBE_DB_DIR, 'casiab_train_db.pt'))
+
+	dataset = read_data(args.dir, 'test', debug=debug)
+	joblib.dump(dataset, osp.join(VIBE_DB_DIR, 'casiab_test_db.pt'))
