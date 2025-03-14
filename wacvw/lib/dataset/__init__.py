@@ -9,4 +9,5 @@ from .posetrack import PoseTrack
 from .penn_action import PennAction
 from .humanid import HumanID, TripletSampler, ValidationSampler
 from .casiab import CasiaB
+from .brc import BRC
 

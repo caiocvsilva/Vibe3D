@@ -79,8 +79,11 @@ class GaitHead(torch.nn.Module):
 for epoch in ['5', '10', '15', '20', '25', '30', '35', '40', '45']:
     dataset='CasiaB'
     #epoch='5'
-    generator_name = '/blue/sarkar.sudeep/mauricio.segundo/models/'+dataset+'-all-generator-'+epoch+'.pytorch'
-    gait_head_name = '/blue/sarkar.sudeep/mauricio.segundo/models/'+dataset+'-all-gaithead-'+epoch+'.pytorch'
+
+    input_model_path = '/blue/sarkar.sudeep/caio.dasilva/models/'
+
+    generator_name = input_model_path+dataset+'-all-generator-'+epoch+'.pytorch'
+    gait_head_name = input_model_path+dataset+'-all-gaithead-'+epoch+'.pytorch'
 
     seqlen = 36
     stepsize = 18

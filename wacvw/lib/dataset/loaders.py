@@ -61,14 +61,17 @@ def get_data_loaders(cfg):
     """
 
     # ===== Motion Discriminator dataset =====
-    motion_disc_db = AMASS(seqlen=cfg.DATASET.SEQLEN)
-    motion_disc_loader = DataLoader(dataset=motion_disc_db, batch_size=cfg.TRAIN.BATCH_SIZE, shuffle=True, num_workers=cfg.NUM_WORKERS)
+    # motion_disc_db = AMASS(seqlen=cfg.DATASET.SEQLEN)
+    # motion_disc_loader = DataLoader(dataset=motion_disc_db, batch_size=cfg.TRAIN.BATCH_SIZE, shuffle=True, num_workers=cfg.NUM_WORKERS)
+    motion_disc_loader = None
 
     # ===== Generator dataset =====
     if cfg.TRAIN.DATASET == 'HumanID':
         img_db = HumanID(seqlen=cfg.DATASET.SEQLEN, subset='train')
     elif cfg.TRAIN.DATASET == 'CasiaB':
         img_db = CasiaB(seqlen=cfg.DATASET.SEQLEN, subset='train')
+    elif cfg.TRAIN.DATASET == 'BRC':
+        img_db = BRC(seqlen=cfg.DATASET.SEQLEN, subset='train')
     img_loader = DataLoader(dataset=img_db, batch_size=cfg.TRAIN.BATCH_SIZE, num_workers=cfg.NUM_WORKERS, sampler=TripletSampler(img_db))
     img_val_loader = DataLoader(dataset=img_db, batch_size=cfg.TRAIN.BATCH_SIZE, num_workers=cfg.NUM_WORKERS, sampler=ValidationSampler(img_db))
 

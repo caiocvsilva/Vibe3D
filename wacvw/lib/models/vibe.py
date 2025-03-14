@@ -50,6 +50,8 @@ class TemporalEncoder(nn.Module):
         self.use_residual = use_residual
 
     def forward(self, x):
+        # print('x.shape:', x.shape)      
+
         n,t,f = x.shape
         x = x.permute(1,0,2) # NTF -> TNF
         y, _ = self.gru(x)
@@ -166,11 +168,22 @@ class VIBE_Demo(nn.Module):
         # input size NTF
         batch_size, seqlen, nc, h, w = input.shape
 
-        feature = self.hmr.feature_extractor(input.reshape(-1, nc, h, w))
+        # print('input.shape:', input.shape)
+
+        reshped_input = input.reshape(-1, nc, h, w)
+
+        # print('reshped_input.shape:', reshped_input.shape)
+
+        feature = self.hmr.feature_extractor(reshped_input)
+
+        # print('feature.shape:', feature.shape)
 
         feature = feature.reshape(batch_size, seqlen, -1)
+        # print('feature.shape:', feature.shape)
         feature = self.encoder(feature)
+        # print('feature.shape:', feature.shape)
         feature = feature.reshape(-1, feature.size(-1))
+        # print('feature.shape:', feature.shape)
 
         smpl_output = self.regressor(feature, J_regressor=J_regressor)
 

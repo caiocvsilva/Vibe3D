@@ -237,7 +237,7 @@ def main():
     start = time.time()
 
     # ========= Load pretrained weights ========= #
-    pretrained_file = '/blue/sarkar.sudeep/mauricio.segundo/vibe/vibe_data/vibe_model_w_3dpw.pth.tar'
+    pretrained_file = '/blue/sarkar.sudeep/caio.dasilva/Vibe3D/VIBE/data/vibe_data/vibe_model_w_3dpw.pth.tar'
     ckpt = torch.load(pretrained_file, map_location=device)
     print(f'Performance of pretrained model on 3DPW: {ckpt["performance"]}')
     ckpt = ckpt['gen_state_dict']
@@ -275,10 +275,10 @@ def main():
     sys.stdout.flush()
 
     smpl_loss = SMPLloss(cfg.LOSS.POSE_W, cfg.LOSS.SHAPE_W).to(device)
-    adv_loss = DISCloss(cfg.LOSS.D_MOTION_LOSS_W)
+    # adv_loss = DISCloss(cfg.LOSS.D_MOTION_LOSS_W)
 
     img_iter = iter(data_loaders[0])
-    mocap_iter = iter(data_loaders[2])
+    # mocap_iter = iter(data_loaders[2])
 
     start = time.time()
 
@@ -302,24 +302,24 @@ def main():
                 img_iter = iter(data_loaders[0])
                 batch_img = next(img_iter)
 
-            try:
-                batch_mocap = next(mocap_iter)
-                if batch_mocap['theta'].size(0) < cfg.TRAIN.BATCH_SIZE:
-                    mocap_iter = iter(data_loaders[2])
-                    batch_mocap = next(mocap_iter)
-            except StopIteration:
-                mocap_iter = iter(data_loaders[2])
-                batch_mocap = next(mocap_iter)
+            # try:
+            #     batch_mocap = next(mocap_iter)
+            #     if batch_mocap['theta'].size(0) < cfg.TRAIN.BATCH_SIZE:
+            #         mocap_iter = iter(data_loaders[2])
+            #         batch_mocap = next(mocap_iter)
+            # except StopIteration:
+            #     mocap_iter = iter(data_loaders[2])
+            #     batch_mocap = next(mocap_iter)
 
             seqsize = torch.min(batch_img['length']).item()
             batch_img['images'] = batch_img['images'][:,:seqsize]
             batch_img['shape'] = batch_img['shape'][:,:seqsize]
             batch_img['pose'] = batch_img['pose'][:,:seqsize]
 
-            batch_mocap['theta'] = batch_mocap['theta'][:,:seqsize]
+            # batch_mocap['theta'] = batch_mocap['theta'][:,:seqsize]
 
             move_dict_to_device(batch_img, device)
-            move_dict_to_device(batch_mocap, device)
+            # move_dict_to_device(batch_mocap, device)
 
             print('Iteration', iteration, 'of', cfg.TRAIN.NUM_ITERS_PER_EPOCH, '/', seqsize)
             sys.stdout.flush()
@@ -352,9 +352,17 @@ def main():
         print('eval in', time.time()-start, 'seconds')
         sys.stdout.flush()
 
+        # path to save models
+        # output_model_path = '/blue/sarkar.sudeep/mauricio.segundo/models/'
+        output_model_path = '/blue/sarkar.sudeep/caio.dasilva/models/'
+
+        # if does not exist, create the directory
+        if not os.path.exists(output_model_path):
+            os.makedirs(output_model_path)
+
         if (epoch+1)%5 == 0:
-            torch.save(gait_head.state_dict(), '/blue/sarkar.sudeep/mauricio.segundo/models/'+cfg.TRAIN.DATASET+'-all-gaithead-'+str(epoch+1)+'.pytorch')
-            torch.save(generator.state_dict(), '/blue/sarkar.sudeep/mauricio.segundo/models/'+cfg.TRAIN.DATASET+'-all-generator-'+str(epoch+1)+'.pytorch')
+            torch.save(gait_head.state_dict(), output_model_path+cfg.TRAIN.DATASET+'-all-gaithead-'+str(epoch+1)+'.pytorch')
+            torch.save(generator.state_dict(), output_model_path+cfg.TRAIN.DATASET+'-all-generator-'+str(epoch+1)+'.pytorch')
 
     print('Training done!')
 

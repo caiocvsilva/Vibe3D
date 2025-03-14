@@ -19,16 +19,21 @@ from yacs.config import CfgNode as CN
 
 # CONSTANTS
 # You may modify them at will
-VIBE_DB_DIR = '/blue/sarkar.sudeep/mauricio.segundo/vibe/vibe_db/'
-AMASS_DIR = '/blue/sarkar.sudeep/mauricio.segundo/vibe/amass/'
-HUMANID_DIR = '/blue/sarkar.sudeep/mauricio.segundo/HumanID/'
-CASIAB_DIR = '/blue/sarkar.sudeep/mauricio.segundo/CasiaB/'
+VIBE_DB_DIR = '/blue/sarkar.sudeep/caio.dasilva/Vibe3D/VIBE/data/vibe_db/'
+# AMASS_DIR = '/blue/sarkar.sudeep/mauricio.segundo/vibe/amass/'
+AMASS_DIR = '/blue/sarkar.sudeep/mauricio.segundo/AMASS'
+# HUMANID_DIR = '/blue/sarkar.sudeep/mauricio.segundo/HumanID/'
+HUMANID_DIR = '/blue/sarkar.sudeep/mauricio.segundo/HUMANID/'
+# CASIAB_DIR = '/blue/sarkar.sudeep/mauricio.segundo/CasiaB/'
+CASIAB_DIR = '/blue/sarkar.sudeep/mauricio.segundo/CASIAB/'
+BRC_DIR='/blue/sarkar.sudeep/caio.dasilva/datasets/brc_512'
 INSTA_DIR = 'data/insta_variety'
 MPII3D_DIR = 'data/mpi_inf_3dhp'
 THREEDPW_DIR = 'data/3dpw'
 PENNACTION_DIR = 'data/penn_action'
 POSETRACK_DIR = 'data/posetrack'
-VIBE_DATA_DIR = '/blue/sarkar.sudeep/mauricio.segundo/vibe/vibe_data/'
+VIBE_DATA_DIR = '/blue/sarkar.sudeep/caio.dasilva/Vibe3D/VIBE/data/vibe_data/'
+
 
 # Configuration variables
 cfg = CN()
@@ -38,7 +43,7 @@ cfg.EXP_NAME = 'default'
 cfg.DEVICE = 'cuda'
 cfg.DEBUG = True
 cfg.LOGDIR = ''
-cfg.NUM_WORKERS = 4 #8
+cfg.NUM_WORKERS = 2 #8
 cfg.DEBUG_FREQ = 1000
 cfg.SEED_VALUE = -1
 
@@ -48,11 +53,12 @@ cfg.CUDNN.DETERMINISTIC = False
 cfg.CUDNN.ENABLED = True
 
 cfg.TRAIN = CN()
-cfg.TRAIN.DATASET = 'CasiaB'
+# cfg.TRAIN.DATASET = 'CasiaB'
+cfg.TRAIN.DATASET = 'BRC'
 cfg.TRAIN.DATASETS_2D = ['Insta']
 cfg.TRAIN.DATASETS_3D = ['MPII3D']
 cfg.TRAIN.DATASET_EVAL = 'ThreeDPW'
-cfg.TRAIN.BATCH_SIZE = 24
+cfg.TRAIN.BATCH_SIZE = 4
 cfg.TRAIN.DATA_2D_RATIO = 0.5
 cfg.TRAIN.START_EPOCH = 0
 cfg.TRAIN.END_EPOCH = 100
@@ -84,7 +90,7 @@ cfg.TRAIN.MOT_DISCR.ATT.LAYERS = 3
 cfg.TRAIN.MOT_DISCR.ATT.DROPOUT = 0.2
 
 cfg.DATASET = CN()
-cfg.DATASET.SEQLEN = 60
+cfg.DATASET.SEQLEN = 16
 cfg.DATASET.OVERLAP = 0.5
 
 cfg.LOSS = CN()

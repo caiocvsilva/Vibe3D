@@ -1,7 +1,7 @@
 #!/bin/bash
 
-#SBATCH --job-name=train_all
-#SBATCH --mem=30GB
+#SBATCH --job-name=brc_data
+#SBATCH --mem=16GB
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
@@ -17,6 +17,6 @@ source /home/mauricio.segundo/.bashrc
 
 conda activate pytorch3d
 export PYTHONPATH="./:$PYTHONPATH"
-python train_all.py
+python lib/data_utils/brc_utils.py
 conda deactivate
 
