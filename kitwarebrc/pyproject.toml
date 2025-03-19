@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "kitbrc"
+version = "0.1.0"
+description = "This package enables interaction with the Kitware BRC collects"
+authors = ["Cole Hill, Kitware Inc."]
+readme = "README.md"
+packages = [
+    { include = "kitbrc", from = "src"}
+]
+
+
+[tool.poetry.dependencies]
+python = "^3.8"
+pandas = "^2.0"
+numpy = "^1.24"
+opencv-python = "^4.0"
+filterpy = "^1.4.5"
+
+
+[tool.poetry.group.dev.dependencies]
+tqdm = "^4.66.4"
+matplotlib = "^3.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
