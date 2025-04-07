@@ -5,6 +5,7 @@ from pathlib import Path
 from tqdm import tqdm
 from kitbrc.brc import Dataset
 from kitbrc.annotations.bounding_boxes import Tracklets
+import multiprocessing
 
 def process_video(video):
     video_path = video['file_path']
@@ -18,11 +19,9 @@ def process_video(video):
 
     # Create a directory for the output frames
     output_dir = Path(f'output/{video["subject_id"]}/{video["camera"]}/frames')
-
     # Only process new videos
     if os.path.isdir(output_dir):
         return
-
     output_dir.mkdir(parents=True, exist_ok=True)
 
     cap = cv2.VideoCapture(str(video_path))
@@ -98,6 +97,13 @@ def process_video(video):
 
     cap.release()
 
+def run_videos(videos_subset, gpu_id):
+    import os
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
+    # Process each video in the subset
+    for _, video in videos_subset.iterrows():
+        process_video(video)
+
 def main():
     # Paths to the necessary files
     video_manifest_path = '/blue/sarkar.sudeep/caio.dasilva/datasets/brc2-field/video_manifest.txt'  # Path to the video manifest file
@@ -114,9 +120,17 @@ def main():
         subject_id_to_clip_id=subject_id_to_clip_id_path
     )
 
-    # Loop over all videos in the dataset and process each one
-    for idx, (_, video) in enumerate(tqdm(dataset.videos.iterrows(), total=len(dataset.videos), desc="Processing Videos")):
-        process_video(video)
+    # Use multiprocessing to split the videos for 2 GPUs
+    num_gpus = 2
+    videos = dataset.videos
+    splits = np.array_split(videos, num_gpus)
+    processes = []
+    for gpu_id, videos_subset in enumerate(splits):
+        p = multiprocessing.Process(target=run_videos, args=(videos_subset, gpu_id))
+        p.start()
+        processes.append(p)
+    for p in processes:
+        p.join()
 
 if __name__ == "__main__":
     main()
