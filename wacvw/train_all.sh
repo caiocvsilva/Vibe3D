@@ -8,6 +8,7 @@
 #SBATCH --partition=gpu
 #SBATCH --gpus=a100:2
 #SBATCH --time=5-00:00:00
+#SBATCH --output=brc2_train.out
 
 ps x
 nvidia-smi

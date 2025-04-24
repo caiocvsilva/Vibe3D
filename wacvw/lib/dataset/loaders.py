@@ -72,6 +72,8 @@ def get_data_loaders(cfg):
         img_db = CasiaB(seqlen=cfg.DATASET.SEQLEN, subset='train')
     elif cfg.TRAIN.DATASET == 'BRC':
         img_db = BRC(seqlen=cfg.DATASET.SEQLEN, subset='train')
+    elif cfg.TRAIN.DATASET == 'BRC2':
+        img_db = BRC2(seqlen=cfg.DATASET.SEQLEN, subset='train')
     img_loader = DataLoader(dataset=img_db, batch_size=cfg.TRAIN.BATCH_SIZE, num_workers=cfg.NUM_WORKERS, sampler=TripletSampler(img_db))
     img_val_loader = DataLoader(dataset=img_db, batch_size=cfg.TRAIN.BATCH_SIZE, num_workers=cfg.NUM_WORKERS, sampler=ValidationSampler(img_db))
 

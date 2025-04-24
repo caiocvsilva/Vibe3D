@@ -17,6 +17,6 @@ source /home/mauricio.segundo/.bashrc
 
 conda activate pytorch3d
 export PYTHONPATH="./:$PYTHONPATH"
-python lib/data_utils/brc_utils.py
+python lib/data_utils/brc2_utils.py
 conda deactivate
 

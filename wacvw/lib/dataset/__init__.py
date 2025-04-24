@@ -10,4 +10,5 @@ from .penn_action import PennAction
 from .humanid import HumanID, TripletSampler, ValidationSampler
 from .casiab import CasiaB
 from .brc import BRC
+from .brc2 import BRC2
 

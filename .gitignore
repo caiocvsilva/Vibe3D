@@ -176,3 +176,9 @@ wacvw.tgz
 slurm*.out
 subsets-casiab/
 vibe_model_wo_3dpw.pth.tar
+kitwarebrc/output*
+*.err
+*.out
+*.csv
+*.json
+*.pt
