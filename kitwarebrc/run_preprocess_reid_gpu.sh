@@ -1,14 +1,14 @@
 #!/bin/bash
 
-#SBATCH --job-name=brc_data
-#SBATCH --mem=16GB
+#SBATCH --job-name=reid_frames
+#SBATCH --mem=24GB
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
 #SBATCH --partition=gpu
 #SBATCH --gpus=a100:2
 #SBATCH --time=5-00:00:00
-#SBATCH --out=run_brc2_data.out
+#SBATCH --output=preprocess_reid_gpu.out
 
 ps x
 nvidia-smi
@@ -16,8 +16,10 @@ echo $CUDA_VISIBLE_DEVICES
 
 source /home/mauricio.segundo/.bashrc
 
-conda activate pytorch3d
+conda activate reid
 export PYTHONPATH="./:$PYTHONPATH"
-python lib/data_utils/brc2_utils.py
+python preprocess_reid_gpu.py
 conda deactivate
+
+
 

@@ -96,7 +96,7 @@ class BRC2(Dataset):
         target = {
             'images': img,
             'length': torch.from_numpy(np.asarray([end_index - start_index + 1])),
-            'id': torch.from_numpy(np.asarray([self.idx[index]])),
+            'id': torch.from_numpy(np.asarray([self.idx[index]])), #self.idx[index],
             'shape': torch.from_numpy(np.repeat(self.shape[self.idx[index]], self.seqlen, axis=0)),
             'pose': torch.from_numpy(np.concatenate(
                 (self.db['pose'][start_index:end_index + 1],

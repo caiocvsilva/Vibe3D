@@ -17,6 +17,27 @@
 from torch.utils.data import ConcatDataset, DataLoader, SequentialSampler
 from lib.dataset import *
 
+import torch
+from torch.nn.utils.rnn import pad_sequence
+
+def pad_if_necessary(list_of_items):
+    # Check if all items are tensors/arrays of the same shape
+    shapes = [item.shape for item in list_of_items if hasattr(item, 'shape')]
+    if len(set(shapes)) == 1:
+        return torch.stack(list_of_items)
+    # If not, pad along first dimension
+    return pad_sequence(list_of_items, batch_first=True)
+
+def custom_collate_fn(batch):
+    collated = {}
+    for key in batch[0]:
+        items = [item[key] for item in batch]
+        if isinstance(items[0], torch.Tensor) and items[0].dim() > 0:  # likely a sequence
+            collated[key] = pad_if_necessary(items)
+        else:
+            collated[key] = items  # leave as list
+    return collated
+
 
 def get_data_loaders(cfg):
     """
@@ -74,8 +95,8 @@ def get_data_loaders(cfg):
         img_db = BRC(seqlen=cfg.DATASET.SEQLEN, subset='train')
     elif cfg.TRAIN.DATASET == 'BRC2':
         img_db = BRC2(seqlen=cfg.DATASET.SEQLEN, subset='train')
-    img_loader = DataLoader(dataset=img_db, batch_size=cfg.TRAIN.BATCH_SIZE, num_workers=cfg.NUM_WORKERS, sampler=TripletSampler(img_db))
-    img_val_loader = DataLoader(dataset=img_db, batch_size=cfg.TRAIN.BATCH_SIZE, num_workers=cfg.NUM_WORKERS, sampler=ValidationSampler(img_db))
+    img_loader = DataLoader(dataset=img_db, batch_size=cfg.TRAIN.BATCH_SIZE, num_workers=cfg.NUM_WORKERS, sampler=TripletSampler(img_db), collate_fn=custom_collate_fn)
+    img_val_loader = DataLoader(dataset=img_db, batch_size=cfg.TRAIN.BATCH_SIZE, num_workers=cfg.NUM_WORKERS, sampler=ValidationSampler(img_db), collate_fn=custom_collate_fn)
 
     """
     # ===== Evaluation dataset =====

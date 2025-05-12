@@ -182,3 +182,6 @@ kitwarebrc/output*
 *.csv
 *.json
 *.pt
+kitwarebrc/core.python*
+events.out.*
+*.pkl

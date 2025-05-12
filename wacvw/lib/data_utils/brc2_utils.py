@@ -17,6 +17,8 @@ from lib.models.vibe import VIBE_Demo
 from lib.data_utils.img_utils import convert_cvimg_to_tensor
 
 def read_data(root_folder, subset, gt_betas_dir, debug=False):
+    # Only use these two camera IDs
+    valid_cameras = {"G318", "G2302"}
     dataset = { 'vid_name': [], 'id': [], 'img_name': [], 'pose': [], 'shape': [] }
 
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
@@ -33,32 +35,48 @@ def read_data(root_folder, subset, gt_betas_dir, debug=False):
     # All folders under root are subjectIDs
     subjects = sorted([x for x in os.listdir(root_folder) if osp.isdir(osp.join(root_folder, x))])
 
-    # Partition by list order (not integer value)
+    print('subjects: ', subjects)
+
     split_index = 70
     for i, subject_id in enumerate(tqdm(subjects, desc="Processing subjects")):
         # Partition by index, not int(subject_id)
         if (subset == 'train' and i > split_index) or (subset == 'test' and i <= split_index):
             continue
 
-        cameras = sorted([x for x in os.listdir(osp.join(root_folder, subject_id)) if osp.isdir(osp.join(root_folder, subject_id, x))])
+        subject_folder = osp.join(root_folder, subject_id)
+        cameras = sorted([x for x in os.listdir(subject_folder) if osp.isdir(osp.join(subject_folder, x))])
+        cameras = [c for c in cameras if c in valid_cameras]
 
-        for camera_id in tqdm(cameras, desc="Processing cameras", leave=False):
+        # Only proceed if BOTH desired cameras exist for this subject and each has frames
+        subject_has_both_cameras = True
+        for camera_id in valid_cameras:
+            frames_dir = osp.join(subject_folder, camera_id, 'frames')
+            if not osp.exists(frames_dir):
+                subject_has_both_cameras = False
+                break
+            frames = [x for x in os.listdir(frames_dir) if x.endswith('.png')]
+            if not frames:
+                subject_has_both_cameras = False
+                break
+        if not subject_has_both_cameras:
+            continue
+
+        for camera_id in cameras:
             # Load the subject's ground truth beta file from the identity folder.
-            # beta_file = osp.join(gt_betas_dir, f'{subject_id}.npy')
-            beta_files = glob.glob(osp.join(gt_betas_dir, f'{subject_id}_*.npy'))
+            beta_files = glob.glob(osp.join(gt_betas_dir, f'{subject_id}.npy'))
             if not beta_files:
+                print('no beta files')
                 continue
             beta_file = beta_files[0]
             if not osp.exists(beta_file):
+                print('no beta files2')
                 continue
-                
-            # subject_beta = np.load(beta_file, allow_pickle=True).item()['betas']
-            subject_beta = np.load(beta_file, allow_pickle=True)
-            # print(subject_beta)
-            # input('press enter')
 
-            frames_dir = osp.join(root_folder, subject_id, camera_id, 'frames')
+            subject_beta = np.load(beta_file, allow_pickle=True)
+
+            frames_dir = osp.join(subject_folder, camera_id, 'frames')
             if not osp.exists(frames_dir):
+                print('no frames')
                 continue
             frames = sorted([x for x in os.listdir(frames_dir) if x.endswith('.png')])
 
@@ -66,15 +84,6 @@ def read_data(root_folder, subset, gt_betas_dir, debug=False):
             batch = []
             gt_betas_list = []
 
-            # for frame in frames:
-            #     img_path = osp.join(frames_dir, frame)
-            #     img_paths.append(img_path)
-            #     print(img_paths)
-            #     image = cv2.cvtColor(cv2.imread(img_path, cv2.IMREAD_COLOR), cv2.COLOR_BGR2RGB)
-            #     image = convert_cvimg_to_tensor(image)
-            #     batch.append(image)
-            #     gt_betas_list.append(subject_beta)
-                
             for frame in frames:
                 img_path = osp.join(frames_dir, frame)
                 try:
@@ -91,12 +100,11 @@ def read_data(root_folder, subset, gt_betas_dir, debug=False):
                     print(f"Error processing {img_path}: {e}, skipping.")
                     continue
 
-
             if not batch:
+                print('no batch')
                 continue
 
             img_paths_array = np.array(img_paths)
-
             batch = torch.stack(batch, dim=0)
             batch = batch.unsqueeze(1)
             batch = batch.to(device)
@@ -108,14 +116,15 @@ def read_data(root_folder, subset, gt_betas_dir, debug=False):
             pred_pose = output['theta'][:,:,3:75].reshape(batch_size * seqlen, -1).cpu().numpy()
             pred_betas = np.array(gt_betas_list)
 
-            # Use subjectID_cameraID as vid_name
             vid_name = f"{subject_id}_{camera_id}"
             dataset['vid_name'].append(np.array([vid_name]*len(frames)))
-            dataset['id'].append(np.array([subject_id]*len(frames)))  # Use string subject_id
+            dataset['id'].append(np.array([int(subject_id)]*len(frames)))  # Use string subject_id
             dataset['img_name'].append(img_paths_array)
             dataset['pose'].append(pred_pose)
             dataset['shape'].append(pred_betas)
+            print('added subject')
 
+    print('dataset: ', dataset)
     for k in dataset.keys():
         dataset[k] = np.concatenate(dataset[k])
 
@@ -123,7 +132,6 @@ def read_data(root_folder, subset, gt_betas_dir, debug=False):
 
 if __name__ == '__main__':
     debug = False
-    # gt_betas_dir = osp.join(BRC_DIR, 'betas')
     gt_betas_dir = BRC2_SMPL_DIR
 
     dataset = read_data(BRC2_DIR, 'train', gt_betas_dir, debug=debug)

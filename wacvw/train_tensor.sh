@@ -1,14 +1,14 @@
 #!/bin/bash
 
-#SBATCH --job-name=brc_data
-#SBATCH --mem=16GB
+#SBATCH --job-name=train_all
+#SBATCH --mem=30GB
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
 #SBATCH --partition=gpu
 #SBATCH --gpus=a100:2
 #SBATCH --time=5-00:00:00
-#SBATCH --out=run_brc2_data.out
+#SBATCH --output=brc2_train.out
 
 ps x
 nvidia-smi
@@ -18,6 +18,6 @@ source /home/mauricio.segundo/.bashrc
 
 conda activate pytorch3d
 export PYTHONPATH="./:$PYTHONPATH"
-python lib/data_utils/brc2_utils.py
+python train_tensorboard.py
 conda deactivate
 
